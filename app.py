@@ -24,6 +24,8 @@ import time
 
 class ros_node(QThread):
 
+    rotate_done = pyqtSignal()
+
     def __init__(self, x, y, heading, parent=None):
         QThread.__init__(self, parent=parent)
 
@@ -34,7 +36,13 @@ class ros_node(QThread):
         self.x = x
         self.y = y
         self.heading = heading
-        
+
+        # Rotate agv 
+        self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.rot = Twist()
+        self.rotate_rate = rospy.Rate(3)
+
+        self.rotate_done.connect(parent.on_btn_verify_click)
 
     def run(self):
         # Creates the SimpleActionClient
@@ -77,70 +85,31 @@ class ros_node(QThread):
 
         print('[NODE] Result received. Action state is %s' % self.move_base_client.get_state())
         print('[NODE] Goal status message is %s' % self.move_base_client.get_goal_status_text())
-
+        
+        # if succeffuly go to the target
+        if int(self.move_base_client.get_state()) == 3:
+            self.rotate(2)
+        # Failed to find a valid plan
+        elif int(self.move_base_client.get_state()) == 4:
+            print('[ERROR] No plan~')
         #return move_base_client.get_result() 
 
-    def cancel(self):
-        print('[NODE] Cancelling Goal ...')
-        self.move_base_client.cancel_goal()
-
-
-class rs_camera(QThread):
-
-    refresh = pyqtSignal(np.ndarray)
-    
-    def __init__(self, parent=None):
-        QThread.__init__(self, parent=parent)
+    def rotate(self, duration):
+        print("[NODE] Start rotate")
         
-        # Camera settings
-        self.pipeline = rs.pipeline()
-        self.config = rs.config()
-        self.config.enable_stream(rs.stream.color, 640, 480, rs.format.rgb8, 30)
-        self.pipeline.start(self.config)
-        print('[INFO] Camera started')
-        self.running = True
-
-    def run(self):
-        while self.running:
-            frames = self.pipeline.wait_for_frames()
-            color_frame = frames.get_color_frame()
-            if not color_frame:
-                continue        
-            color_image = np.asanyarray(color_frame.get_data())
-            self.refresh.emit(color_image)
-
-    def stop(self):
-        self.running = False
-        print('[INFO] Terminating Camera')
-        self.pipeline.stop()
-
-class rotate(QThread):
-    rotate_done = pyqtSignal()
-
-    def __init__(self, target, parent=None):
-        QThread.__init__(self, parent=parent)
-        self.target = target
-        rospy.init_node('rotate_agv')
-
-        self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-
-        # Rotate message
-        self.rot = Twist()
-        self.rotate_rate = rospy.Rate(3)
-
-    def run(self):
-
         self.rot.angular.z = 0.5
 
         start = time.time()
-        while time.time() - start < 2:
+        while time.time() - start < duration:
             self.pub.publish(self.rot)
             self.rotate_rate.sleep()
 
         self.rotate_done.emit()
 
-    def stop(self):
-        pass
+
+    def cancel(self):
+        print('[NODE] Cancelling Goal ...')
+        self.move_base_client.cancel_goal()
 
 
 
@@ -176,9 +145,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th = web_camera(self)
         self.th.start()
         self.camera_running = True
-        self.th2 = None
-        self.r_th = rotate(self, self)
-        self.r_th.rotate_done.connect(self.on_btn_verify_click)
+
+        # self.r_th.rotate_done.connect(self.on_btn_verify_click)
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -219,7 +187,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.btn_openLink.setEnabled(False)
 
     def verify(self, image):
-        
+        self.th.refresh.disconnect()
+
         if len(image) == 0:
             print('[ERRO] No image found!')
             self.set_authority(False)
@@ -239,18 +208,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 print('[WARN] Unknown person')
                 self.set_authority(False)
                 self.drawPicture(image.copy(),cache=False)
+
+                return False
+
             elif names[0] == text:
                 print('[INFO] Authorized User: '+text)
                 self.set_authority(True)
                 self.drawPicture(image.copy(),cache=False)
+
+                return True
             else:
                 print('[WARN] Unauthorized User')
                 self.set_authority(False)
+
+                return False
     
     
     def on_btn_verify_click(self):
         print('[INFO] verify button pressed')
-        self.verify(self.image.copy())
+        ret = self.verify(self.image.copy())
+        if ret == False:
+            # rotate again
+            pass
         
     
 
@@ -276,9 +255,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close()
 
     def on_btn_home_click(self):
-        # self.th2 = ros_node(6.25,0.463,0,self)
-        # self.th2.start()
-        self.r_th.start()
+        self.th2 = ros_node(6.25,0.463,0,self)
+        self.th2.start()
+        # self.r_th.start()
 
 
         # while not )rospy.is_shutdown()
