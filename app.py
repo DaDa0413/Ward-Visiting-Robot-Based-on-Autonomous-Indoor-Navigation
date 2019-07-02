@@ -26,16 +26,16 @@ class ros_node(QThread):
 
     rotate_done = pyqtSignal()
 
-    def __init__(self, x, y, heading, parent=None):
+    def __init__(self, parent=None):
         QThread.__init__(self, parent=parent)
 
         print('[NODE] Starting ROS node...')
         rospy.init_node('app_client')
-        
-        print('[NODE] x=' + str(x) + ' y=' + str(y) + ' h=' + str(heading))
-        self.x = x
-        self.y = y
-        self.heading = heading
+
+        self.parent = parent
+
+        # Creates the SimpleActionClient
+        self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
 
         # Rotate agv 
         self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
@@ -45,8 +45,14 @@ class ros_node(QThread):
         self.rotate_done.connect(parent.on_btn_verify_click)
 
     def run(self):
-        # Creates the SimpleActionClient
-        self.move_base_client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
+        self.activate(self.parent.x, self.parent.y, self.parent.heading)
+
+    def activate(self, x, y, heading):
+
+        print('[NODE] x=' + str(x) + ' y=' + str(y) + ' h=' + str(heading))
+        self.x = x
+        self.y = y
+        self.heading = heading
 
         # Waits until the action server has started up and started
         # listening for goals.
@@ -145,8 +151,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th = web_camera(self)
         self.th.start()
         self.camera_running = True
-
-        # self.r_th.rotate_done.connect(self.on_btn_verify_click)
+        self.p_th = ros_node(self)
+        # self.p_th.start()
+        x = 6.5
+        y = -0.19
+        heading = 0
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -255,20 +264,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close()
 
     def on_btn_home_click(self):
-        self.th2 = ros_node(6.25,0.463,0,self)
-        self.th2.start()
+        # self.th2 = ros_node(6.25,0.463,0,self)
+        # self.th2.start()
         # self.r_th.start()
-
+        pass
 
         # while not )rospy.is_shutdown()
     
     def on_btn_point_click(self):
-        x = float(self.pos_x.text())
-        y = float(self.pos_y.text())
-        h = float(self.pos_h.text())
+        self.x = float(self.pos_x.text())
+        self.y = float(self.pos_y.text())
+        self.heading = float(self.pos_h.text())
         
-        self.th2 = ros_node(x,y,h,self)
-        self.th2.start()
+        # self.th2 = ros_node(x,y,h,self)
+        self.p_th.start()
+        # self.p_th.activate(x,y,h)
 
     def on_btn_cancel_click(self):
         if self.th2:
