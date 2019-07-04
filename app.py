@@ -43,9 +43,16 @@ class ros_node(QThread):
         self.rotate_rate = rospy.Rate(3)
 
         self.rotate_done.connect(parent.on_btn_verify_click)
+        self.gogoagv = False
+        self.recognizing = True
+        self.done = False
 
     def run(self):
-        self.activate(self.parent.x, self.parent.y, self.parent.heading)
+        while True:
+            if self.gogoagv:
+                self.activate(self.parent.x, self.parent.y, self.parent.heading)
+                self.gogoagv = False
+                break
 
     def activate(self, x, y, heading):
 
@@ -94,7 +101,11 @@ class ros_node(QThread):
         
         # if succeffuly go to the target
         if int(self.move_base_client.get_state()) == 3:
-            self.rotate(2)
+            while self.recognizing:
+                self.rotate(2)
+                self.done = False
+                while self.done == False:
+                    pass
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
             print('[ERROR] No plan~')
@@ -110,7 +121,9 @@ class ros_node(QThread):
             self.pub.publish(self.rot)
             self.rotate_rate.sleep()
 
+        time.sleep(1)
         self.rotate_done.emit()
+
 
 
     def cancel(self):
@@ -152,6 +165,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th.start()
         self.camera_running = True
         self.p_th = ros_node(self)
+        self.p_th.start()
+
         # self.p_th.start()
         x = 6.5
         y = -0.19
@@ -208,9 +223,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if len(names) == 0:
             print('[WARN] No person in the image')
             self.set_authority(False)
+
+            return False
         elif len(names) > 1:
             print('[WARN] Multiple people in the image')
             self.set_authority(False)
+
+            return False
         else:
             text = str(self.comboBox.currentText())
             if names[0] == 'Unknown':
@@ -238,7 +257,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ret = self.verify(self.image.copy())
         if ret == False:
             # rotate again
-            pass
+            self.th.refresh.connect(lambda p:self.drawPicture(p))
+        else:
+            self.p_th.recognizing = False
+        
+        self.p_th.done = True
+            
         
     
 
@@ -276,8 +300,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.y = float(self.pos_y.text())
         self.heading = float(self.pos_h.text())
         
+        self.p_th.gogoagv = True
         # self.th2 = ros_node(x,y,h,self)
-        self.p_th.start()
         # self.p_th.activate(x,y,h)
 
     def on_btn_cancel_click(self):
