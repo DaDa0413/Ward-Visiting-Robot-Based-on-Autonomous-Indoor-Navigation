@@ -22,6 +22,8 @@ import tf.transformations
 import time
 # from rotate_agv import rotate_agv 
 
+from web_cam import web_camera
+
 class ros_node(QThread):
 
     rotate_done = pyqtSignal()
@@ -53,6 +55,7 @@ class ros_node(QThread):
                 self.activate(self.parent.x, self.parent.y, self.parent.heading)
                 self.gogoagv = False
                 break
+            self.sleep(1)
 
     def activate(self, x, y, heading):
 
@@ -132,26 +135,7 @@ class ros_node(QThread):
 
 
 
-class web_camera(QThread):
 
-    refresh = pyqtSignal(np.ndarray)
-
-    def __init__(self, parent=None):
-        QThread.__init__(self, parent=parent)
-        self.cap = cv2.VideoCapture(0)
-        print('[INFO] Camera started')
-        self.running = True
-    
-    def run(self):
-        while self.running:
-            ret, frame = self.cap.read()
-            self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.refresh.emit(self.image)
-    
-    def stop(self):
-        self.running = False
-        print('[INFO] Terminating Camera')
-        self.cap.release()
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     
