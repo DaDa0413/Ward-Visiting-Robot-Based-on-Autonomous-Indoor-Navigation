@@ -255,7 +255,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th.stop()
         self.camera_running = False
         self.btn_takePhoto.setEnabled(False)
-        webbrowser.open("https://appr.tc/r/19980202")
+        webbrowser.open("http://localhost:9000/A")
+        time.sleep(5)
+        webbrowser.open("http://localhost:9000/B")
 	
 
     def on_btn_clear_click(self):
