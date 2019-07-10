@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 80%;margin: 0px;padding: 0px;">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ClientA</title>
+</head>
+
+<body style="height: 80%;margin: 0px;padding: 0px;">
+
+    <video id="localVideo"    autoplay muted style="width:240px;height:240px;"></video>
+
+
+    <video id="remoteVideo" autoplay muted style="width:240px;height:240px;"></video>
+                
+
+    <button class="button" id="connectButton" name="connectButton" >
+        Ready
+    </button>
+    <!-- Include jquery -->
+    <!-- Include peerjs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/0.3.9/peer.min.js"></script>
+
+    <!-- set connection -->
+    <script>
+        var peer;
+        var con;
+        var localVideo;
+        var localStream;
+        var remoteVideo;
+
+        // connect_peer();
+        //  connectButton = document.getElementById('connectButton');
+        // connectButton.addEventListener('click', connect_peer, false);
+
+        //connection socket
+        peer = new Peer('A', { host: location.hostname, port: 9000, path: '/api' });
+
+        peer.on('open', function (id) {
+            console.log('My peer ID is: ' + id);
+        });
+        
+        //video
+        var constraints = {
+            video: true,
+            audio: true,
+        };
+        
+        function getUserMediaSuccess(stream) {
+            localStream = stream;
+            localVideo.srcObject = stream;
+        }
+        
+        function errorHandler(error) {
+            console.log(error);
+        }
+
+        if(navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia(constraints).then(getUserMediaSuccess).catch(errorHandler);
+        } else {
+            alert('Your browser does not support getUserMedia API');
+        }
+
+
+        function connect_peer() {
+            // connectButton.disabled = true;
+            peer.on('connection', (conn) => {
+                con = conn;
+                
+                //video
+                peer.call(conn.peer,localStream);
+                
+                peer.on('call',function(call) {
+                    call.answer(localStream)
+                    call.on('stream', function(stream) {
+                        remoteVideo.srcObject = stream;
+                    })
+                })
+                
+                conn.on('open', () => {
+                    // 有任何人加入這個會話時，就會觸發
+                    console.log(`${con.peer} is connected with me`);
+                });
+                conn.on('data', (data) => {
+  
+                });
+                
+
+                
+            });
+        }
+        localVideo = document.getElementById('localVideo');
+        remoteVideo = document.getElementById('remoteVideo');
+        connect_peer();
+    </script>
+</body>
+
+</html>
