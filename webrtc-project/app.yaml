@@ -13,6 +13,10 @@
 
 # [START app_yaml]
 runtime: nodejs10
+
+# network:
+#   forwarded_ports:
+#     - 9000
 #env_variables:
 #  PORT: 9000
 # [END app_yaml]
