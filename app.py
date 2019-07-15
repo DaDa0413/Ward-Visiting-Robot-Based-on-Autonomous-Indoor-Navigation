@@ -20,7 +20,6 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import Twist
 import tf.transformations
 import time
-# from rotate_agv import rotate_agv 
 
 from web_cam import web_camera
 
@@ -111,7 +110,7 @@ class ros_node(QThread):
                     pass
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
-            print('[ERROR] No plan~')
+            print('[ERROR] No plan')
         #return move_base_client.get_result() 
 
     def rotate(self, duration):
@@ -127,14 +126,9 @@ class ros_node(QThread):
         time.sleep(1)
         self.rotate_done.emit()
 
-
-
     def cancel(self):
         print('[NODE] Cancelling Goal ...')
         self.move_base_client.cancel_goal()
-
-
-
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -150,11 +144,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.camera_running = True
         self.p_th = ros_node(self)
         self.p_th.start()
-
-        # self.p_th.start()
-        x = 6.5
-        y = -0.19
-        heading = 0
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -180,9 +169,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_btn_takePhoto_click(self):
         print('[INFO] Take Photo button pressed')
         self.th.refresh.connect(lambda p:self.drawPicture(p))
-        # self.image = cv2.imread("examples/test9.png")
-        # cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB, self.image)
-        # self.drawPicture(self.image.copy())
+        
         
     def set_authority(self, authorized):
         if authorized:
@@ -195,8 +182,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.btn_openLink.setEnabled(False)
 
     def verify(self, image):
-        self.th.refresh.disconnect()
-
         if len(image) == 0:
             print('[ERRO] No image found!')
             self.set_authority(False)
@@ -238,6 +223,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     
     def on_btn_verify_click(self):
         print('[INFO] verify button pressed')
+
+        self.th.refresh.disconnect()
+
         ret = self.verify(self.image.copy())
         if ret == False:
             # rotate again
@@ -248,8 +236,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.p_th.done = True
             
         
-    
-
     def on_btn_openLink_click(self):
         print('[INFO] Open Link button pressed')
         self.th.stop()
@@ -277,8 +263,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.th2.start()
         # self.r_th.start()
         pass
-
-        # while not )rospy.is_shutdown()
     
     def on_btn_point_click(self):
         self.x = float(self.pos_x.text())
@@ -286,8 +270,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.heading = float(self.pos_h.text())
         
         self.p_th.gogoagv = True
-        # self.th2 = ros_node(x,y,h,self)
-        # self.p_th.activate(x,y,h)
 
     def on_btn_cancel_click(self):
         if self.th2:
