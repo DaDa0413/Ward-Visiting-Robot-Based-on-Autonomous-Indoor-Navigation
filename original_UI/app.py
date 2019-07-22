@@ -158,15 +158,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.viewer.setPixmap(scaledPix)
 
     def onBindingUI(self):
-        self.btn_takePhoto.clicked.connect(self.on_btn_takePhoto_click)
-        self.btn_verify.clicked.connect(self.on_btn_verify_click)
-        self.btn_openLink.clicked.connect(self.on_btn_openLink_click)
-        self.btn_clear.clicked.connect(self.on_btn_clear_click)
-        self.btn_ok.clicked.connect(self.on_btn_ok_click)
         self.btn_quit.clicked.connect(self.on_btn_quit_click)
         self.btn_home.clicked.connect(self.on_btn_home_click)
-        self.btn_point.clicked.connect(self.on_btn_point_click)
-        self.btn_cancel.clicked.connect(self.on_btn_cancel_click)
 
     def on_btn_takePhoto_click(self):
         print('[INFO] Take Photo button pressed')
@@ -261,6 +254,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close()
 
     def on_btn_home_click(self):
+        # todo
         # self.th2 = ros_node(6.25,0.463,0,self)
         # self.th2.start()
         # self.r_th.start()

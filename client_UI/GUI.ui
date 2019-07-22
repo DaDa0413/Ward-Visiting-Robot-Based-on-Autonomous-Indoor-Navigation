@@ -19,8 +19,8 @@
      <rect>
       <x>20</x>
       <y>20</y>
-      <width>666</width>
-      <height>500</height>
+      <width>771</width>
+      <height>601</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -36,47 +36,11 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_verify">
-    <property name="geometry">
-     <rect>
-      <x>260</x>
-      <y>610</y>
-      <width>91</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Verify</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_takePhoto">
+   <widget class="QPushButton" name="btn_home">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>540</y>
-      <width>111</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Take Photo</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_openLink">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>680</y>
+      <y>690</y>
       <width>101</width>
       <height>51</height>
      </rect>
@@ -87,43 +51,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Open Link</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_clear">
-    <property name="geometry">
-     <rect>
-      <x>240</x>
-      <y>540</y>
-      <width>71</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Clear</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_ok">
-    <property name="geometry">
-     <rect>
-      <x>150</x>
-      <y>540</y>
-      <width>71</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>OK</string>
+     <string>Home</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btn_quit">
@@ -560,248 +488,6 @@
     </property>
     <property name="flat">
      <bool>false</bool>
-    </property>
-   </widget>
-   <widget class="QComboBox" name="comboBox">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>620</y>
-      <width>121</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>50</weight>
-      <italic>false</italic>
-      <bold>false</bold>
-     </font>
-    </property>
-    <item>
-     <property name="text">
-      <string>&lt;choose&gt;</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Robin_Lin</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Max_Huang</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Daniel_Lin</string>
-     </property>
-    </item>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>610</y>
-      <width>141</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>50</weight>
-      <italic>false</italic>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Choose user: </string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>130</x>
-      <y>680</y>
-      <width>81</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>16</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Status:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_status">
-    <property name="geometry">
-     <rect>
-      <x>210</x>
-      <y>680</y>
-      <width>161</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>16</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Unauthorized</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_home">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>320</y>
-      <width>71</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Home</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_point">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>180</y>
-      <width>71</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Point</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="pos_x">
-    <property name="geometry">
-     <rect>
-      <x>740</x>
-      <y>50</y>
-      <width>51</width>
-      <height>27</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="pos_y">
-    <property name="geometry">
-     <rect>
-      <x>740</x>
-      <y>90</y>
-      <width>51</width>
-      <height>27</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="pos_h">
-    <property name="geometry">
-     <rect>
-      <x>740</x>
-      <y>130</y>
-      <width>51</width>
-      <height>27</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_x">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>40</y>
-      <width>21</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>x:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_y">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>80</y>
-      <width>21</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>y:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_h">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>120</y>
-      <width>21</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>h:</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_cancel">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>250</y>
-      <width>71</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Cancel</string>
     </property>
    </widget>
   </widget>
