@@ -6,8 +6,9 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 import cv2
-if "../" not in sys.path:
-    sys.path.append("../")
+if "../utils/" not in sys.path:
+    sys.path.append("../utils/")
+
 from recognize_face_imgs import recognize
 
 import webbrowser
