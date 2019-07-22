@@ -7,7 +7,7 @@ import cv2
 def recognize(img):
 	# load the known faces and embeddings
 	print("[INFO] loading encodings...")
-	data = pickle.loads(open('encodings.pickle', "rb").read())
+	data = pickle.loads(open('../datasets/encodings.pickle', "rb").read())
 	
 	# load the input image and convert it from BGR to RGB
 	image = img
