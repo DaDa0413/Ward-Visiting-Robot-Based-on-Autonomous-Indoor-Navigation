@@ -6,8 +6,9 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 import cv2
-if "../" not in sys.path:
-    sys.path.append("../")
+if "../utils/" not in sys.path:
+    sys.path.append("../utils/")
+
 from recognize_face_imgs import recognize
 
 import webbrowser
@@ -25,6 +26,7 @@ import time
 
 from web_cam import web_camera
 
+import socket
 class ros_node(QThread):
 
     rotate_done = pyqtSignal()
@@ -53,17 +55,17 @@ class ros_node(QThread):
     def run(self):
         while True:
             if self.gogoagv:
-                self.activate(self.parent.x, self.parent.y, self.parent.heading)
+                self.activate()
                 self.gogoagv = False
-                break
-            self.sleep(1)
+            else:
+                self.sleep(1)
 
-    def activate(self, x, y, heading):
+    def activate(self):
 
-        print('[NODE] x=' + str(x) + ' y=' + str(y) + ' h=' + str(heading))
-        self.x = x
-        self.y = y
-        self.heading = heading
+        print('[NODE] x=' + str(self.x) + ' y=' + str(self.y) + ' h=' + str(self.heading))
+        # self.x = x
+        # self.y = y
+        # self.heading = heading
 
         # Waits until the action server has started up and started
         # listening for goals.
@@ -132,6 +134,51 @@ class ros_node(QThread):
         print('[NODE] Cancelling Goal ...')
         self.move_base_client.cancel_goal()
 
+class TCP_server(QThread):
+
+    def __init__(self, parent=None):
+        
+        QThread.__init__(self, parent=parent)
+        # get parent of the thread
+        self.parent = parent
+
+        hostname = '0.0.0.0' 
+        port = 6671
+        addr = (hostname,port)
+        self.srv = socket.socket() 
+        self.srv.bind(addr)
+        self.srv.listen(5)
+        print('[INFO] TCP Server established')
+        self.running = True
+
+    def run(self):
+        self.connect_socket, self.client_addr = self.srv.accept()
+        print('[INFO] TCP connection set')
+        while self.running:
+            print('Client:' + str(self.client_addr))
+            try:
+                recevent = str(self.connect_socket.recv(1024))
+                print(recevent)
+                self.action(recevent)
+                if recevent == "":
+                    break
+            except Exception as e:
+                print(e)
+                break
+        print('[INFO] TCP thread terminate')
+        self.connect_socket.close()
+        print('[INFO] TCP socket closed')
+    def action(self, recvMSG):
+        if recvMSG == 'STOP':
+            print('AGV is canceling goal')
+            self.parent.ros_th.cancel()
+        else:
+            print('AGV is heading to %s' % (recvMSG))
+            pos = recvMSG.split(' ')
+            self.parent.ros_th.x = float(pos[1])
+            self.parent.ros_th.y = float(pos[2])
+            self.parent.ros_th.heading = float(pos[3])
+            self.parent.ros_th.gogoagv = True
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     
@@ -141,11 +188,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.onBindingUI()
         self.image = []
         self.set_authority(False)
+        # Create thread for camera
         self.th = web_camera(self)
         self.th.start()
         self.camera_running = True
-        self.p_th = ros_node(self)
-        self.p_th.start()
+        # Create thread for TCP server
+        self.tcp_th = TCP_server(self)
+        # Create thread for ROS node
+        self.ros_th = ros_node(self)  
+        self.ros_th.start()
+        self.tcp_th.start()
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -158,14 +210,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.viewer.setPixmap(scaledPix)
 
     def onBindingUI(self):
+        # open camera
         self.btn_takePhoto.clicked.connect(self.on_btn_takePhoto_click)
+        # verify and authenticate
         self.btn_verify.clicked.connect(self.on_btn_verify_click)
+        # open link for video communication
         self.btn_openLink.clicked.connect(self.on_btn_openLink_click)
+        # clear viewer image
         self.btn_clear.clicked.connect(self.on_btn_clear_click)
+        # capture viewer image
         self.btn_ok.clicked.connect(self.on_btn_ok_click)
         self.btn_quit.clicked.connect(self.on_btn_quit_click)
+        # go home button
         self.btn_home.clicked.connect(self.on_btn_home_click)
+        # go to certain link
         self.btn_point.clicked.connect(self.on_btn_point_click)
+        # cancel goal
         self.btn_cancel.clicked.connect(self.on_btn_cancel_click)
 
     def on_btn_takePhoto_click(self):
@@ -233,9 +293,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # rotate again
             self.th.refresh.connect(lambda p:self.drawPicture(p))
         else:
-            self.p_th.recognizing = False
+            self.ros_th.recognizing = False
         
-        self.p_th.done = True
+        self.ros_th.done = True
             
         
     def on_btn_openLink_click(self):
@@ -258,9 +318,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print('[INFO] Quit Application')
         if self.camera_running:
             self.th.stop()
+        self.tcp_th.running = False
         self.close()
 
     def on_btn_home_click(self):
+        # todo
         # self.th2 = ros_node(6.25,0.463,0,self)
         # self.th2.start()
         # self.r_th.start()
@@ -271,7 +333,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.y = float(self.pos_y.text())
         self.heading = float(self.pos_h.text())
         
-        self.p_th.gogoagv = True
+        self.ros_th.gogoagv = True
 
     def on_btn_cancel_click(self):
         if self.th2:
