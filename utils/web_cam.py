@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-
+import time
 class web_camera(QThread):
 
     refresh = pyqtSignal(np.ndarray)
@@ -10,7 +10,8 @@ class web_camera(QThread):
     def __init__(self, parent=None):
         QThread.__init__(self, parent=parent)
         self.cap = cv2.VideoCapture(0)
-        print('[INFO] Camera started')
+        # '\033[95m' : color of header
+        print('\033[95m' + '[INFO] Camera started')
         self.running = True
     
     def run(self):
@@ -21,5 +22,6 @@ class web_camera(QThread):
     
     def stop(self):
         self.running = False
+        time.sleep(1)
         print('[INFO] Terminating Camera')
         self.cap.release()

@@ -27,6 +27,18 @@ import time
 from web_cam import web_camera
 
 import socket
+
+# Font color
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 class ros_node(QThread):
 
     rotate_done = pyqtSignal()
@@ -34,7 +46,7 @@ class ros_node(QThread):
     def __init__(self, parent=None):
         QThread.__init__(self, parent=parent)
 
-        print('[NODE] Starting ROS node...')
+        print(bcolors.HEADER + '[NODE] Starting ROS node...')
         rospy.init_node('app_client')
 
         self.parent = parent
@@ -62,17 +74,14 @@ class ros_node(QThread):
 
     def activate(self):
 
-        print('[NODE] x=' + str(self.x) + ' y=' + str(self.y) + ' h=' + str(self.heading))
-        # self.x = x
-        # self.y = y
-        # self.heading = heading
+        print(bcolors.ENDC + '[NODE] x=' + str(self.x) + ' y=' + str(self.y) + ' h=' + str(self.heading))
 
         # Waits until the action server has started up and started
         # listening for goals.
-        print ('[NODE] Waiting for server...')
+        print (bcolors.ENDC + '[NODE] Waiting for server...')
         self.move_base_client.wait_for_server()
 
-        # Creates a goal to send to the action server.
+        # Creates a goal message to be sent to the action server.
         pose = geometry_msgs.msg.Pose()
         pose.position.x = self.x
         pose.position.y = self.y
@@ -87,38 +96,37 @@ class ros_node(QThread):
 
 
         # Sends the goal to the action server.
-        print('[NODE] Sending goal to action server: %s' % goal)
+        print(bcolors.ENDC + '[NODE] Sending goal to action server: %s' % goal)
         self.move_base_client.send_goal(goal)
 
-        canceltime = None
+        # Waits for the server to finish performing the action.
+        print(bcolors.ENDC + '[NODE] Waiting for result...')
+        self.move_base_client.wait_for_result()
 
-        if canceltime != None:
-            print('[NODE] Letting action server work for 3 seconds but then cancelling...')
-            time.sleep(canceltime)
-            print('[NODE] Cancelling current goal...')
-            self.move_base_client.cancel_goal()
-        else:
-            # Waits for the server to finish performing the action.
-            print('[NODE] Waiting for result...')
-            self.move_base_client.wait_for_result()
-
-        print('[NODE] Result received. Action state is %s' % self.move_base_client.get_state())
-        print('[NODE] Goal status message is %s' % self.move_base_client.get_goal_status_text())
+        print(bcolors.OKBLUE + '[NODE] Result received. Action state is %s' % self.move_base_client.get_state())
+        print(bcolors.OKBLUE + '[NODE] Goal status message is %s' % self.move_base_client.get_goal_status_text())
         
-        # if succeffuly go to the target
+        # if AGV succeffuly went to the target
         if int(self.move_base_client.get_state()) == 3:
+            # open camera
+            self.parent.on_btn_takePhoto_click()
+            self.recognizing = True
+            time.sleep(1)
             while self.recognizing:
                 self.rotate(2)
+                # to solve the racing condition with what????
                 self.done = False
                 while self.done == False:
                     pass
+            # after rotating, present the viewer with the nurese 
+            self.parent.drawPicture(self.parent.nurse_img)
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
-            print('[ERROR] No plan')
+            print(bcolors.FAIL + '[ERROR] No plan')
         #return move_base_client.get_result() 
 
     def rotate(self, duration):
-        print("[NODE] Start rotate")
+        print(bcolors.OKGREEN + "[NODE] Start rotate")
         
         self.rot.angular.z = 0.5
 
@@ -131,7 +139,7 @@ class ros_node(QThread):
         self.rotate_done.emit()
 
     def cancel(self):
-        print('[NODE] Cancelling Goal ...')
+        print(bcolors.WARNING + '[NODE] Cancelling Goal ...')
         self.move_base_client.cancel_goal()
 
 class TCP_server(QThread):
@@ -143,37 +151,39 @@ class TCP_server(QThread):
         self.parent = parent
 
         hostname = '0.0.0.0' 
-        port = 6671
+        port = 6667
         addr = (hostname,port)
         self.srv = socket.socket() 
         self.srv.bind(addr)
         self.srv.listen(5)
-        print('[INFO] TCP Server established')
+        print(bcolors.HEADER + '[INFO] TCP Server established')
         self.running = True
 
     def run(self):
         self.connect_socket, self.client_addr = self.srv.accept()
-        print('[INFO] TCP connection set')
+        print(bcolors.HEADER + '[INFO] TCP connection set')
         while self.running:
-            print('Client:' + str(self.client_addr))
+            print(bcolors.OKBLUE + 'Client:' + str(self.client_addr))
             try:
                 recevent = str(self.connect_socket.recv(1024))
-                print(recevent)
+                print(bcolors.ENDC + recevent)
                 self.action(recevent)
                 if recevent == "":
                     break
             except Exception as e:
-                print(e)
+                print(bcolors.FAIL + str(e))
+                # print(bcolors.WARNING + 'Something happended in TCP')
                 break
-        print('[INFO] TCP thread terminate')
+        print(bcolors.ENDC + '[INFO] TCP thread terminate')
         self.connect_socket.close()
-        print('[INFO] TCP socket closed')
+        print(bcolors.ENDC + '[INFO] TCP socket closed')
+
     def action(self, recvMSG):
         if recvMSG == 'STOP':
-            print('AGV is canceling goal')
+            print(bcolors.WARNING + 'AGV is canceling goal')
             self.parent.ros_th.cancel()
         else:
-            print('AGV is heading to %s' % (recvMSG))
+            print(bcolors.OKGREEN + 'AGV is heading to %s' % (recvMSG))
             pos = recvMSG.split(' ')
             self.parent.ros_th.x = float(pos[1])
             self.parent.ros_th.y = float(pos[2])
@@ -198,6 +208,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ros_th = ros_node(self)  
         self.ros_th.start()
         self.tcp_th.start()
+
+        self.nurse_img = cv2.imread('nurse.jpg')
+        self.nurse_img = cv2.cvtColor(self.nurse_img, cv2.COLOR_BGR2RGB)
+        self.drawPicture(self.nurse_img)
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -229,7 +243,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_cancel.clicked.connect(self.on_btn_cancel_click)
 
     def on_btn_takePhoto_click(self):
-        print('[INFO] Take Photo button pressed')
+        print(bcolors.OKGREEN + '[INFO] Take Photo button pressed')
         self.th.refresh.connect(lambda p:self.drawPicture(p))
         
         
@@ -245,46 +259,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def verify(self, image):
         if len(image) == 0:
-            print('[ERRO] No image found!')
+            print(bcolors.FAIL + '[ERRO] No image found!')
             self.set_authority(False)
             return
 
         image, names = recognize(image)
         
         if len(names) == 0:
-            print('[WARN] No person in the image')
+            print(bcolors.WARNING + '[WARN] No person in the image')
             self.set_authority(False)
 
             return False
         elif len(names) > 1:
-            print('[WARN] Multiple people in the image')
+            print(bcolors.WARNING + '[WARN] Multiple people in the image')
             self.set_authority(False)
 
             return False
         else:
             text = str(self.comboBox.currentText())
             if names[0] == 'Unknown':
-                print('[WARN] Unknown person')
+                print(bcolors.WARNING + '[WARN] Unknown person')
                 self.set_authority(False)
                 self.drawPicture(image.copy(),cache=False)
 
                 return False
 
             elif names[0] == text:
-                print('[INFO] Authorized User: '+text)
+                print(bcolors.OKBLUE + '[INFO] Authorized User: '+text)
                 self.set_authority(True)
                 self.drawPicture(image.copy(),cache=False)
 
                 return True
             else:
-                print('[WARN] Unauthorized User')
+                print(bcolors.WARNING + '[WARN] Unauthorized User')
                 self.set_authority(False)
 
                 return False
     
     
     def on_btn_verify_click(self):
-        print('[INFO] verify button pressed')
+        print(bcolors.OKGREEN + '[INFO] verify button pressed')
 
         self.th.refresh.disconnect()
 
@@ -299,7 +313,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             
         
     def on_btn_openLink_click(self):
-        print('[INFO] Open Link button pressed')
+        print(bcolors.OKGREEN + '[INFO] Open Link button pressed')
         self.th.stop()
         self.camera_running = False
         self.btn_takePhoto.setEnabled(False)
@@ -315,29 +329,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th.refresh.disconnect()
 
     def on_btn_quit_click(self):
-        print('[INFO] Quit Application')
+        print(bcolors.OKGREEN + '[INFO] Quit Application')
         if self.camera_running:
             self.th.stop()
         self.tcp_th.running = False
+        self.tcp_th.quit()
         self.close()
 
     def on_btn_home_click(self):
-        # todo
-        # self.th2 = ros_node(6.25,0.463,0,self)
-        # self.th2.start()
-        # self.r_th.start()
-        pass
-    
+        print(bcolors.OKGREEN + "AGV is going back")
+        self.tcp_th.action('POS -0.2 -0.1 0.00')
+
     def on_btn_point_click(self):
-        self.x = float(self.pos_x.text())
-        self.y = float(self.pos_y.text())
-        self.heading = float(self.pos_h.text())
-        
-        self.ros_th.gogoagv = True
+        MSG = 'POS ' + self.pos_x.text() + " " + self.pos_y.text() + " " + self.pos_h.text()
+        print(bcolors.OKGREEN + "Givein AGV a point : %s" %(MSG))
+        self.tcp_th.action(MSG)
 
     def on_btn_cancel_click(self):
-        if self.th2:
-            self.th2.cancel()
+        print(bcolors.OKGREEN + "AGV STOP")
+        self.tcp_th.action('STOP')
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

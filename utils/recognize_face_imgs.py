@@ -4,9 +4,20 @@ import argparse
 import pickle
 import cv2
 
+# Font color
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+	
 def recognize(img):
 	# load the known faces and embeddings
-	print("[INFO] loading encodings...")
+	print(bcolors.ENDC + "[INFO] loading encodings...")
 	data = pickle.loads(open('../datasets/encodings.pickle', "rb").read())
 	
 	# load the input image and convert it from BGR to RGB
@@ -16,7 +27,7 @@ def recognize(img):
 	# detect the (x, y)-coordinates of the bounding boxes corresponding
 	# to each face in the input image, then compute the facial embeddings
 	# for each face
-	print("[INFO] recognizing faces...")
+	print(bcolors.ENDC+ "[INFO] recognizing faces...")
 	boxes = face_recognition.face_locations(rgb,
 		model='hog')
 	encodings = face_recognition.face_encodings(rgb, boxes)
