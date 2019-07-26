@@ -21,6 +21,14 @@ import socket
 import speech_recognition as sr
 
 
+LOCATIONS = {
+    "daniel":["Daniel_Lin", "0.00 -5.00 0.00"],
+    "max":["Max_Huang", "0.00 0.40 0.00"],
+    "robin":["Robin_Lin", "0.00 -3.33 0.00"]
+}
+
+ADDR = ("192.168.31.64", 6666)
+
 class Voice(QThread):
 
     def __init__(self, parent=None):
@@ -32,30 +40,51 @@ class Voice(QThread):
             ("find robin", 1),
             ("find daniel", 1),
             ("find max", 1),
-            ("go home", 1),
-            ("hey hey", 1)
+            ("find professor", 1)
         ]
 
         print("[VOICE] Voice Thread Started")
 
         self.running = True
 
+        self.ui_parent = parent
+
     def run(self):
         while self.running == True:
             if self.rec == True:
                 with sr.Microphone() as source:
-                    print("Say something!")
+                    print("[INFO] Say something!")
                     audio = self.r.listen(source,phrase_time_limit=2)
 
-                print("Recognizing...")
+                print("[INFO] Recognizing...")
                 try:
-                    print("Sphinx thinks you said " + self.r.recognize_sphinx(audio,language="en-US", keyword_entries=self.keywords_EN))
+                    text = self.r.recognize_sphinx(audio,language="en-US", keyword_entries=self.keywords_EN)
+                    print('[RES]' + text)
+
+                    if "daniel" in text:
+                        self.toggle_rec()
+                        msg = "POS " + LOCATIONS['daniel'][1] + " " + LOCATIONS['daniel'][0] 
+                        self.ui_parent.tcp_send(msg)
+
+                    elif "max" in text:
+                        self.toggle_rec()
+                        msg = "POS " + LOCATIONS['max'][1] + " " + LOCATIONS['max'][0]
+                        self.ui_parent.tcp_send(msg)
+
+                    elif "robin" in text:
+                        self.toggle_rec()
+                        msg = "POS " + LOCATIONS['robin'][1] + " " + LOCATIONS['robin'][0]
+                        self.ui_parent.tcp_send(msg)
+
                 except sr.UnknownValueError:
-                    print("Sphinx could not understand audio")
+                    # print("Sphinx could not understand audio")
+                    pass
                 except sr.RequestError as e:
-                    print("Sphinx error; {0}".format(e))
+                    # print("Sphinx error; {0}".format(e))
+                    pass
                 except sr.WaitTimeoutError as e:
-                    print("timeout!")
+                    # print("timeout!")
+                    pass
             else:
                 time.sleep(1)
     
@@ -75,9 +104,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
         self.onBindingUI()
-        
-        self.hostname = "192.168.31.64"
-        self.port = 6671
 
         self.clientsock = socket.socket()
         self.connect()
@@ -86,9 +112,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.voice_th.start()
 
     def connect(self):
-        addr = (self.hostname,self.port)
         try:
-            self.clientsock.connect(addr)
+            self.clientsock.connect(ADDR)
         except Exception as e:
             print(e)
 
@@ -96,6 +121,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_send_pos.clicked.connect(self.on_btn_send_pos_Clicked)
         self.btn_stop.clicked.connect(self.on_btn_stop_Clicked)
         self.btn_voice_rec.clicked.connect(self.on_btn_voice_rec_Clicked)
+
+    
+
+    def tcp_send(self, msg):
+        try:
+            self.clientsock.send(msg)
+            print("[SEND]", msg)
+        except Exception as e:
+            print(e)
+
+        return
+
 
     def on_btn_send_pos_Clicked(self):
         print("[DEBUG] SEND POS BTN Clicked")
@@ -105,22 +142,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         heading = float(self.pos_h.text())
 
         msg = "POS %.2f %.2f %.2f" % (x, y, heading)
-        try:
-            self.clientsock.send(msg) 
-            print("[SEND]", msg)
-        except Exception as e:
-            print(e)
-
+        self.tcp_send(msg)
         return
 
     def on_btn_stop_Clicked(self):
         print("[DEBUG] STOP BTN Clicked")
         msg = "STOP"
-        try:
-            self.clientsock.send(msg) 
-            print("[SEND]", msg)
-        except Exception as e:
-            print(e)
+        self.tcp_send(msg)
         return
         
     def on_btn_voice_rec_Clicked(self):
@@ -129,13 +157,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         return
 
-    def __del__(self):
+    def closeEvent(self, event):
         print("[EXIT] Close socket")
         self.clientsock.close()
         self.voice_th.stop()
         print("[EXIT] Closing Voice Thread")
         time.sleep(3)
-   
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
