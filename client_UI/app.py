@@ -42,7 +42,7 @@ class bcolors:
 class ros_node(QThread):
 
     rotate_done = pyqtSignal()
-
+    take_photo = pyqtSignal()
     def __init__(self, parent=None):
         QThread.__init__(self, parent=parent)
 
@@ -60,6 +60,7 @@ class ros_node(QThread):
         self.rotate_rate = rospy.Rate(3)
 
         self.rotate_done.connect(parent.on_btn_verify_click)
+        self.take_photo.connect(parent.on_btn_takePhoto_click)
         self.gogoagv = False
         self.recognizing = True
         self.done = False
@@ -73,7 +74,6 @@ class ros_node(QThread):
                 self.sleep(1)
 
     def activate(self):
-
         print(bcolors.ENDC + '[NODE] x=' + str(self.x) + ' y=' + str(self.y) + ' h=' + str(self.heading))
 
         # Waits until the action server has started up and started
@@ -108,25 +108,22 @@ class ros_node(QThread):
         
         # if AGV succeffuly went to the target
         if int(self.move_base_client.get_state()) == 3:
-            # open camera
-            self.parent.on_btn_takePhoto_click()
+            self.take_photo.emit()
             self.recognizing = True
             time.sleep(1)
+            print(bcolors.OKGREEN + "[NODE] Start rotate")
             while self.recognizing:
                 self.rotate(2)
                 # to solve the racing condition with what????
                 self.done = False
                 while self.done == False:
                     pass
-            # after rotating, present the viewer with the nurese 
-            self.parent.drawPicture(self.parent.nurse_img)
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
             print(bcolors.FAIL + '[ERROR] No plan')
         #return move_base_client.get_result() 
 
     def rotate(self, duration):
-        print(bcolors.OKGREEN + "[NODE] Start rotate")
         
         self.rot.angular.z = 0.5
 
@@ -151,7 +148,7 @@ class TCP_server(QThread):
         self.parent = parent
 
         hostname = '0.0.0.0' 
-        port = 6667
+        port = 6666
         addr = (hostname,port)
         self.srv = socket.socket() 
         self.srv.bind(addr)
@@ -182,12 +179,16 @@ class TCP_server(QThread):
         if recvMSG == 'STOP':
             print(bcolors.WARNING + 'AGV is canceling goal')
             self.parent.ros_th.cancel()
+        # I should draw distingush between the formats
         else:
             print(bcolors.OKGREEN + 'AGV is heading to %s' % (recvMSG))
             pos = recvMSG.split(' ')
             self.parent.ros_th.x = float(pos[1])
             self.parent.ros_th.y = float(pos[2])
             self.parent.ros_th.heading = float(pos[3])
+            self.parent.authorized_name = pos[4]
+            self.parent.label_name.setText(pos[4])
+
             self.parent.ros_th.gogoagv = True
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -209,9 +210,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ros_th.start()
         self.tcp_th.start()
 
+        # nurse picture showed while agv moving
         self.nurse_img = cv2.imread('nurse.jpg')
         self.nurse_img = cv2.cvtColor(self.nurse_img, cv2.COLOR_BGR2RGB)
         self.drawPicture(self.nurse_img)
+
+        self.authorized_name = "<choose>"
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -225,15 +229,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def onBindingUI(self):
         # open camera
-        self.btn_takePhoto.clicked.connect(self.on_btn_takePhoto_click)
+        # self.btn_takePhoto.clicked.connect(self.on_btn_takePhoto_click)
         # verify and authenticate
-        self.btn_verify.clicked.connect(self.on_btn_verify_click)
+        # self.btn_verify.clicked.connect(self.on_btn_verify_click)
         # open link for video communication
         self.btn_openLink.clicked.connect(self.on_btn_openLink_click)
         # clear viewer image
-        self.btn_clear.clicked.connect(self.on_btn_clear_click)
+        # self.btn_clear.clicked.connect(self.on_btn_clear_click)
         # capture viewer image
-        self.btn_ok.clicked.connect(self.on_btn_ok_click)
+        # self.btn_ok.clicked.connect(self.on_btn_ok_click)
         self.btn_quit.clicked.connect(self.on_btn_quit_click)
         # go home button
         self.btn_home.clicked.connect(self.on_btn_home_click)
@@ -276,7 +280,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             return False
         else:
-            text = str(self.comboBox.currentText())
+            text = self.authorized_name
+            # qtext = QString(text)
+            # self.comboBox.setCurrentIndex(qtext)
+            # text = str(self.comboBox.currentText())
             if names[0] == 'Unknown':
                 print(bcolors.WARNING + '[WARN] Unknown person')
                 self.set_authority(False)
@@ -303,20 +310,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th.refresh.disconnect()
 
         ret = self.verify(self.image.copy())
+        # verification failed, rotate again
         if ret == False:
-            # rotate again
             self.th.refresh.connect(lambda p:self.drawPicture(p))
         else:
             self.ros_th.recognizing = False
+            # after rotating, present the viewer with the nurese 
+            self.drawPicture(self.nurse_img)
         
         self.ros_th.done = True
-            
+
         
     def on_btn_openLink_click(self):
         print(bcolors.OKGREEN + '[INFO] Open Link button pressed')
         self.th.stop()
         self.camera_running = False
-        self.btn_takePhoto.setEnabled(False)
+        # self.btn_takePhoto.setEnabled(False)
         webbrowser.open("https://d2dc5bd0.ngrok.io/A")
         webbrowser.open("https://d2dc5bd0.ngrok.io/B")
 	
