@@ -23,5 +23,5 @@ class web_camera(QThread):
     def stop(self):
         self.running = False
         time.sleep(1)
-        print('[INFO] Terminating Camera')
+        print('\033[0m' + '[INFO] Terminating Camera')
         self.cap.release()
