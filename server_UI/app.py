@@ -27,7 +27,7 @@ LOCATIONS = {
     "robin":["Robin_Lin", "0.00 -3.33 0.00"]
 }
 
-ADDR = ("192.168.31.64", 6666)
+ADDR = ("192.168.31.64", 6668)
 
 class Voice(QThread):
 
@@ -46,45 +46,57 @@ class Voice(QThread):
         print("[VOICE] Voice Thread Started")
 
         self.running = True
-
-        self.ui_parent = parent
+        self.parent = parent
+        self.go_home = False
 
     def run(self):
         while self.running == True:
+            if self.go_home == True:
+                self.go_home = False
+                msg = "HOME"
+                self.parent.tcp_send(msg)
+                self.wait_receive()
+                
             if self.rec == True:
                 with sr.Microphone() as source:
-                    print("[INFO] Say something!")
-                    audio = self.r.listen(source,phrase_time_limit=2)
+                    self.r.adjust_for_ambient_noise(source)
+                    self.parent.print_label("Say something!")
+                    try:
+                        audio = self.r.listen(source,phrase_time_limit=2, timeout=2)
+                        self.parent.print_label("Recognizing...")
+                        try:
+                            text = self.r.recognize_sphinx(audio,language="en-US", keyword_entries=self.keywords_EN)
+                            
+                            if "daniel" in text:
+                                self.parent.print_label("Finding Daniel...")
+                                self.toggle_rec()
+                                msg = "POS " + LOCATIONS['daniel'][1] + " " + LOCATIONS['daniel'][0] 
+                                self.parent.tcp_send(msg)
+                                self.wait_receive()
 
-                print("[INFO] Recognizing...")
-                try:
-                    text = self.r.recognize_sphinx(audio,language="en-US", keyword_entries=self.keywords_EN)
-                    print('[RES]' + text)
+                            elif "max" in text:
+                                self.parent.print_label("Finding Max...")
+                                self.toggle_rec()
+                                msg = "POS " + LOCATIONS['max'][1] + " " + LOCATIONS['max'][0]
+                                self.parent.tcp_send(msg)
+                                self.wait_receive()
 
-                    if "daniel" in text:
-                        self.toggle_rec()
-                        msg = "POS " + LOCATIONS['daniel'][1] + " " + LOCATIONS['daniel'][0] 
-                        self.ui_parent.tcp_send(msg)
+                            elif "robin" in text:
+                                self.parent.print_label("Finding Robin...")
+                                self.toggle_rec()
+                                msg = "POS " + LOCATIONS['robin'][1] + " " + LOCATIONS['robin'][0]
+                                self.parent.tcp_send(msg)
+                                self.wait_receive()
 
-                    elif "max" in text:
-                        self.toggle_rec()
-                        msg = "POS " + LOCATIONS['max'][1] + " " + LOCATIONS['max'][0]
-                        self.ui_parent.tcp_send(msg)
-
-                    elif "robin" in text:
-                        self.toggle_rec()
-                        msg = "POS " + LOCATIONS['robin'][1] + " " + LOCATIONS['robin'][0]
-                        self.ui_parent.tcp_send(msg)
-
-                except sr.UnknownValueError:
-                    # print("Sphinx could not understand audio")
-                    pass
-                except sr.RequestError as e:
-                    # print("Sphinx error; {0}".format(e))
-                    pass
-                except sr.WaitTimeoutError as e:
-                    # print("timeout!")
-                    pass
+                        except sr.UnknownValueError:
+                            self.parent.print_label("Try Again!")
+                            time.sleep(1)
+                        except sr.RequestError:
+                            # print("Sphinx error; {0}".format(e))
+                            pass
+                    except sr.WaitTimeoutError:
+                        self.parent.print_label("Try Again!")
+                        pass
             else:
                 time.sleep(1)
     
@@ -96,6 +108,31 @@ class Voice(QThread):
 
     def stop(self):
         self.running = False
+        self.wait()
+
+    def home(self):
+        self.go_home = True
+        self.parent.print_label("Going Home...")
+
+    def wait_receive(self):
+        data = self.parent.clientsock.recv(64)
+        """
+        0: success
+        1: timeout
+        2: no plan
+        3: stopped
+        """
+        if data == "0":
+            self.parent.print_label("Success!")
+        elif data == "1":
+            self.parent.print_label("Cannot find person!")
+        elif data == "2":
+            self.parent.print_label("No Plan!")
+        elif data == "3":
+            self.parent.print_label("Stop by master!")
+        else:
+            self.parent.print_label(str(data))
+        
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -103,12 +140,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
+        self.setGeometry(300,300, self.frameGeometry().width(), self.frameGeometry().height())
         self.onBindingUI()
 
         self.clientsock = socket.socket()
         self.connect()
 
-        self.voice_th = Voice(self)
+        self.voice_th = Voice(parent=self)
         self.voice_th.start()
 
     def connect(self):
@@ -121,8 +159,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_send_pos.clicked.connect(self.on_btn_send_pos_Clicked)
         self.btn_stop.clicked.connect(self.on_btn_stop_Clicked)
         self.btn_voice_rec.clicked.connect(self.on_btn_voice_rec_Clicked)
-
-    
+        self.btn_home.clicked.connect(self.on_btn_home_Clicked)
 
     def tcp_send(self, msg):
         try:
@@ -133,6 +170,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         return
 
+    def on_btn_home_Clicked(self):
+        print("[DEBUG] HOME BTN Clicked")
+        self.voice_th.home()
+        return
 
     def on_btn_send_pos_Clicked(self):
         print("[DEBUG] SEND POS BTN Clicked")
@@ -152,7 +193,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return
         
     def on_btn_voice_rec_Clicked(self):
-        print("[DEBUG] VOICE REC BTN Clicked")
+        # print("[DEBUG] VOICE REC BTN Clicked")
+        # 1. show message
+        self.print_label("Starting...")
+
+        # 2. toggle thread
         self.voice_th.toggle_rec()
 
         return
@@ -161,8 +206,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print("[EXIT] Close socket")
         self.clientsock.close()
         self.voice_th.stop()
-        print("[EXIT] Closing Voice Thread")
-        time.sleep(3)
+        print("[EXIT] Voice Thread Closed")
+    
+    def print_label(self, msg):
+        self.message.setText(msg)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
