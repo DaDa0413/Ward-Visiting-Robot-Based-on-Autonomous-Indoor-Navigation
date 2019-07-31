@@ -3,7 +3,6 @@ from __future__ import print_function
 import sys
 
 from GUI import Ui_MainWindow
-from REC import Ui_Form
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -113,6 +112,7 @@ class Voice(QThread):
 
     def home(self):
         self.go_home = True
+        self.parent.print_label("Going Home...")
 
     def wait_receive(self):
         data = self.parent.clientsock.recv(64)
