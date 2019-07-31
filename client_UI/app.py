@@ -27,7 +27,7 @@ import time
 from web_cam import web_camera
 
 import socket
-
+import re
 # Font color
 class bcolors:
     HEADER = '\033[95m'
@@ -59,16 +59,25 @@ class ros_node(QThread):
         self.rot = Twist()
         self.rotate_rate = rospy.Rate(3)
 
+        # send signal to other node
         self.rotate_done.connect(parent.on_btn_verify_click)
         self.take_photo.connect(parent.on_btn_takePhoto_click)
+        # activate the moving action
         self.gogoagv = False
+        # activate face recognizing 
         self.recognizing = True
+        # lock (wait for verifying)
         self.done = False
-
+        # only moving, no face recogition
+        self.only_moving = False
     def run(self):
         while True:
             if self.gogoagv:
-                self.activate()
+                if self.only_moving:
+                    self.activate_home()
+                    self.only_moving = False
+                else:
+                    self.activate()
                 self.gogoagv = False
             else:
                 self.sleep(1)
@@ -105,23 +114,78 @@ class ros_node(QThread):
 
         print(bcolors.OKBLUE + '[NODE] Result received. Action state is %s' % self.move_base_client.get_state())
         print(bcolors.OKBLUE + '[NODE] Goal status message is %s' % self.move_base_client.get_goal_status_text())
-        
         # if AGV succeffuly went to the target
         if int(self.move_base_client.get_state()) == 3:
             self.take_photo.emit()
             self.recognizing = True
             time.sleep(1)
             print(bcolors.OKGREEN + "[NODE] Start rotate")
+            rotate_counter = 0
             while self.recognizing:
                 self.rotate(2)
-                # to solve the racing condition with what????
+                # to solve the racing condition with verify function
                 self.done = False
                 while self.done == False:
                     pass
+                rotate_counter = rotate_counter + 1
+                if rotate_counter >= 10:
+                    self.recognizing = False
+                    # send 1 (time out) back to nurse
+                    self.parent.tcp_th.connect_socket.send('1')
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
-            print(bcolors.FAIL + '[ERROR] No plan')
-        #return move_base_client.get_result() 
+            print(bcolors.FAIL + '[ERROR] AGV: No plan')
+            # send 2 (timeout) back to nurse
+            self.parent.tcp_th.connect_socket.send('2')
+        else:
+            print(bcolors.FAIL + '[ERROR] AGV: Action state:%s' % self.move_base_client.get_state())
+
+    def activate_home(self):
+        print(bcolors.ENDC + '[NODE] x=' + str(self.x) +
+              ' y=' + str(self.y) + ' h=' + str(self.heading))
+
+        # Waits until the action server has started up and started
+        # listening for goals.
+        print(bcolors.ENDC + '[NODE] Waiting for server...')
+        self.move_base_client.wait_for_server()
+
+        # Creates a goal message to be sent to the action server.
+        pose = geometry_msgs.msg.Pose()
+        pose.position.x = self.x
+        pose.position.y = self.y
+        pose.position.z = 0.0
+        if (self.heading != None):
+            q = tf.transformations.quaternion_from_euler(0, 0, self.heading)
+            pose.orientation = geometry_msgs.msg.Quaternion(*q)
+        goal = MoveBaseGoal()
+        goal.target_pose.pose = pose
+        goal.target_pose.header.frame_id = 'map'
+        goal.target_pose.header.stamp = rospy.Time.now()
+
+        # Sends the goal to the action server.
+        print(bcolors.ENDC + '[NODE] Sending goal to action server: %s' % goal)
+        self.move_base_client.send_goal(goal)
+
+        # Waits for the server to finish performing the action.
+        print(bcolors.ENDC + '[NODE] Waiting for result...')
+        self.move_base_client.wait_for_result()
+
+        print(bcolors.OKBLUE + '[NODE] Result received. Action state is %s' %
+              self.move_base_client.get_state())
+        print(bcolors.OKBLUE + '[NODE] Goal status message is %s' %
+              self.move_base_client.get_goal_status_text())
+        # if AGV succeffuly went to the target
+        if int(self.move_base_client.get_state()) == 3:
+            # send 0 (success) back to nurse
+            self.parent.tcp_th.connect_socket.send('0')
+        # Failed to find a valid plan
+        elif int(self.move_base_client.get_state()) == 4:
+            print(bcolors.FAIL + '[ERROR] AGV: No plan')
+            # send 2 (timeout) back to nurse
+            self.parent.tcp_th.connect_socket.send('2')
+        else:
+            print(bcolors.FAIL + '[ERROR] AGV: Action state:%s' %
+                  self.move_base_client.get_state())
 
     def rotate(self, duration):
         
@@ -138,49 +202,72 @@ class ros_node(QThread):
     def cancel(self):
         print(bcolors.WARNING + '[NODE] Cancelling Goal ...')
         self.move_base_client.cancel_goal()
+        self.parent.tcp_th.connect_socket.send('3')
 
 class TCP_server(QThread):
 
+    reset_authority = pyqtSignal(bool)
     def __init__(self, parent=None):
         
         QThread.__init__(self, parent=parent)
         # get parent of the thread
         self.parent = parent
-
+    #  self.th.refresh.connecta(lambda p:self.drawPicture(p))
+        self.reset_authority.connect(lambda p:parent.set_authority(p))
         hostname = '0.0.0.0' 
-        port = 6666
+        port = 6668
         addr = (hostname,port)
         self.srv = socket.socket() 
         self.srv.bind(addr)
         self.srv.listen(5)
         print(bcolors.HEADER + '[INFO] TCP Server established')
+        # TCP thread is running
         self.running = True
 
+        # regular expression format
+        self.r = re.compile('POS .* .* .* .*')
+        
     def run(self):
         self.connect_socket, self.client_addr = self.srv.accept()
         print(bcolors.HEADER + '[INFO] TCP connection set')
+        print(bcolors.OKBLUE + 'Client:' + str(self.client_addr))
         while self.running:
-            print(bcolors.OKBLUE + 'Client:' + str(self.client_addr))
             try:
-                recevent = str(self.connect_socket.recv(1024))
+                # block til recv msg
+                recevent = str(self.connect_socket.recv(128))
                 print(bcolors.ENDC + recevent)
                 self.action(recevent)
+                # self.connect_socket.send('Hi~Robin')
                 if recevent == "":
                     break
             except Exception as e:
-                print(bcolors.FAIL + str(e))
-                # print(bcolors.WARNING + 'Something happended in TCP')
+                print(bcolors.FAIL + "[ERROR] TCP:" + str(e))
                 break
-        print(bcolors.ENDC + '[INFO] TCP thread terminate')
-        self.connect_socket.close()
-        print(bcolors.ENDC + '[INFO] TCP socket closed')
-
+        if self.running == False:
+            self.connect_socket.close()
+            print(bcolors.ENDC + '[INFO] TCP socket closed')
+            print(bcolors.ENDC + '[INFO] TCP thread terminate')
+        # if not terminated by quit btn, restart again
+        else:
+            self.connect_socket.close()
+            print(bcolors.ENDC + '[INFO] TCP socket closed')
+            print(bcolors.ENDC + '[INFO] Restart TCP thread')
+            self.run()
     def action(self, recvMSG):
+        # self.parent.set_authority(False)
+        self.reset_authority.emit(False)
         if recvMSG == 'STOP':
             print(bcolors.WARNING + 'AGV is canceling goal')
             self.parent.ros_th.cancel()
         # I should draw distingush between the formats
-        else:
+        elif recvMSG == 'HOME':
+            print(bcolors.OKGREEN + 'AGV is heading to Home')
+            self.parent.ros_th.x = -0.2
+            self.parent.ros_th.y = -0.1
+            self.parent.ros_th.heading = 0.00
+            self.parent.ros_th.gogoagv = True
+            self.parent.ros_th.only_moving = True
+        elif self.r.match(recvMSG) is not None:
             print(bcolors.OKGREEN + 'AGV is heading to %s' % (recvMSG))
             pos = recvMSG.split(' ')
             self.parent.ros_th.x = float(pos[1])
@@ -188,8 +275,10 @@ class TCP_server(QThread):
             self.parent.ros_th.heading = float(pos[3])
             self.parent.authorized_name = pos[4]
             self.parent.label_name.setText(pos[4])
-
+            # activate agv
             self.parent.ros_th.gogoagv = True
+        else:
+            print(bcolors.FAIL + '[ERROR] Unkowned message : %s' %(recvMSG))
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     
@@ -315,6 +404,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.th.refresh.connect(lambda p:self.drawPicture(p))
         else:
             self.ros_th.recognizing = False
+            # send success signal("0") back to nurse
+            self.tcp_th.connect_socket.send('0')
             # after rotating, present the viewer with the nurese 
             self.drawPicture(self.nurse_img)
         
@@ -346,8 +437,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close()
 
     def on_btn_home_click(self):
-        print(bcolors.OKGREEN + "AGV is going back")
-        self.tcp_th.action('POS -0.2 -0.1 0.00')
+        self.tcp_th.action('HOME')
 
     def on_btn_point_click(self):
         MSG = 'POS ' + self.pos_x.text() + " " + self.pos_y.text() + " " + self.pos_h.text()
