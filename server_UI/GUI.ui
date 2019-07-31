@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>547</width>
-    <height>305</height>
+    <width>405</width>
+    <height>191</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <widget class="QPushButton" name="btn_voice_rec">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>180</y>
+      <x>10</x>
+      <y>70</y>
       <width>151</width>
       <height>41</height>
      </rect>
@@ -30,8 +30,8 @@
    <widget class="QPushButton" name="btn_send_pos">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>40</y>
+      <x>280</x>
+      <y>10</y>
       <width>111</width>
       <height>41</height>
      </rect>
@@ -43,8 +43,8 @@
    <widget class="QLineEdit" name="pos_x">
     <property name="geometry">
      <rect>
-      <x>60</x>
-      <y>40</y>
+      <x>10</x>
+      <y>10</y>
       <width>71</width>
       <height>41</height>
      </rect>
@@ -56,8 +56,8 @@
    <widget class="QLineEdit" name="pos_y">
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>40</y>
+      <x>100</x>
+      <y>10</y>
       <width>71</width>
       <height>41</height>
      </rect>
@@ -69,8 +69,8 @@
    <widget class="QLineEdit" name="pos_h">
     <property name="geometry">
      <rect>
-      <x>240</x>
-      <y>40</y>
+      <x>190</x>
+      <y>10</y>
       <width>71</width>
       <height>41</height>
      </rect>
@@ -82,8 +82,8 @@
    <widget class="QPushButton" name="btn_stop">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>100</y>
+      <x>280</x>
+      <y>70</y>
       <width>111</width>
       <height>41</height>
      </rect>
@@ -92,8 +92,40 @@
      <string>STOP</string>
     </property>
    </widget>
+   <widget class="QLabel" name="message">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>120</y>
+      <width>251</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>16</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>No Target</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_home">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>130</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Home</string>
+    </property>
+   </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>
