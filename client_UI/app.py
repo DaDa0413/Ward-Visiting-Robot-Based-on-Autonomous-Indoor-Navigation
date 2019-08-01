@@ -212,12 +212,15 @@ class TCP_server(QThread):
         QThread.__init__(self, parent=parent)
         # get parent of the thread
         self.parent = parent
-    #  self.th.refresh.connecta(lambda p:self.drawPicture(p))
+
         self.reset_authority.connect(lambda p:parent.set_authority(p))
         hostname = '0.0.0.0' 
-        port = 6668
+        port = 6669
         addr = (hostname,port)
-        self.srv = socket.socket() 
+        self.srv = socket.socket()
+        self.srv.settimeout(500)
+        # print('timeout:~~')
+        # print(self.srv.gettimeout())
         self.srv.bind(addr)
         self.srv.listen(5)
         print(bcolors.HEADER + '[INFO] TCP Server established')
