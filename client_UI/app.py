@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from __future__ import print_function
+import os
 import sys
 from GUI import Ui_MainWindow
 from PyQt4.QtCore import *
@@ -28,6 +29,8 @@ from web_cam import web_camera
 
 import socket
 import re
+
+ngrok_url = 'https://f7261ff4.ngrok.io/b'
 # Font color
 class bcolors:
     HEADER = '\033[95m'
@@ -74,9 +77,11 @@ class ros_node(QThread):
         while True:
             if self.gogoagv:
                 if self.only_moving:
+                    print(bcolors.ENDC + 'Only Moving')
                     self.activate_home()
                     self.only_moving = False
                 else:
+                    print(bcolors.ENDC + 'Moving and Verifying')
                     self.activate()
                 self.gogoagv = False
             else:
@@ -215,10 +220,10 @@ class TCP_server(QThread):
 
         self.reset_authority.connect(lambda p:parent.set_authority(p))
         hostname = '0.0.0.0' 
-        port = 6669
+        port = 6667
         addr = (hostname,port)
         self.srv = socket.socket()
-        self.srv.settimeout(500)
+        self.srv.settimeout(None)
         # print('timeout:~~')
         # print(self.srv.gettimeout())
         self.srv.bind(addr)
@@ -245,7 +250,7 @@ class TCP_server(QThread):
                     break
             except Exception as e:
                 print(bcolors.FAIL + "[ERROR] TCP:" + str(e))
-                break
+                # break
         if self.running == False:
             self.connect_socket.close()
             print(bcolors.ENDC + '[INFO] TCP socket closed')
@@ -270,6 +275,7 @@ class TCP_server(QThread):
             self.parent.ros_th.heading = 0.00
             self.parent.ros_th.gogoagv = True
             self.parent.ros_th.only_moving = True
+            os.system("pkill chrome")
         elif self.r.match(recvMSG) is not None:
             print(bcolors.OKGREEN + 'AGV is heading to %s' % (recvMSG))
             pos = recvMSG.split(' ')
@@ -280,6 +286,8 @@ class TCP_server(QThread):
             self.parent.label_name.setText(pos[4])
             # activate agv
             self.parent.ros_th.gogoagv = True
+        elif recvMSG == 'OPEN':
+            self.parent.on_btn_openLink_click()
         else:
             print(bcolors.FAIL + '[ERROR] Unkowned message : %s' %(recvMSG))
 
@@ -420,9 +428,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.th.stop()
         self.camera_running = False
         # self.btn_takePhoto.setEnabled(False)
-        webbrowser.open("https://d2dc5bd0.ngrok.io/A")
-        webbrowser.open("https://d2dc5bd0.ngrok.io/B")
-	
+        webbrowser.open(ngrok_url)
 
     def on_btn_clear_click(self):
         self.viewer.clear()
