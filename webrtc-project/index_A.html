@@ -32,7 +32,7 @@
         // connectButton.addEventListener('click', connect_peer, false);
         //connection socket
 
-        peer = new Peer('A', { host: location.hostname, port:'',  path: '/api'});
+        peer = new Peer('A', { host: 'a32c78fc.ngrok.io', port:'',  path: '/api'});
         peer.on('open', function (id) {
             console.log('My peer ID is: ' + id);
         });
