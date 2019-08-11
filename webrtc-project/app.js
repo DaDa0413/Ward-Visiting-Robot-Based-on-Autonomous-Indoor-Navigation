@@ -1,4 +1,4 @@
-const PORT = process.env.PORT || 9000;
+const PORT = 9000;
 // request the express frame
 const express = require('express');
 const app = express();

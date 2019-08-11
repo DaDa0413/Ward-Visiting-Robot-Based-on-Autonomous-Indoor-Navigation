@@ -20,14 +20,17 @@ import socket
 
 import speech_recognition as sr
 
+import webbrowser
+
+VIDEO = "https://f7261ff4.ngrok.io/a"
 
 LOCATIONS = {
     "daniel":["Daniel_Lin", "0.00 -5.00 0.00"],
-    "max":["Max_Huang", "0.00 0.40 0.00"],
+    "max":["Max_Huang", "-0.50 -1.20 0.00"],
     "robin":["Robin_Lin", "0.00 -3.33 0.00"]
 }
 
-ADDR = ("192.168.31.64", 6668)
+ADDR = ("192.168.31.64", 6667)
 
 class Voice(QThread):
 
@@ -124,6 +127,9 @@ class Voice(QThread):
         """
         if data == "0":
             self.parent.print_label("Success!")
+            webbrowser.open(VIDEO)
+            self.parent.tcp_send("OPEN")
+
         elif data == "1":
             self.parent.print_label("Cannot find person!")
         elif data == "2":
@@ -144,6 +150,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.onBindingUI()
 
         self.clientsock = socket.socket()
+        self.clientsock.settimeout(None)
         self.connect()
 
         self.voice_th = Voice(parent=self)
