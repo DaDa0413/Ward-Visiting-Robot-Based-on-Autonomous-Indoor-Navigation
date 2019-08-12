@@ -14,6 +14,9 @@ class web_camera(QThread):
         print('\033[95m' + '[INFO] Camera started')
         self.running = True
     
+    def reconnect_webcam(self):
+        self.cap = cv2.VideoCapture(0)
+
     def run(self):
         while self.running:
             ret, frame = self.cap.read()
@@ -22,6 +25,6 @@ class web_camera(QThread):
     
     def stop(self):
         self.running = False
-        time.sleep(1)
+        self.wait()
         print('\033[0m' + '[INFO] Terminating Camera')
         self.cap.release()

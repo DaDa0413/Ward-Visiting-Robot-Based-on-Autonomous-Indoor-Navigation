@@ -30,7 +30,7 @@ from web_cam import web_camera
 import socket
 import re
 
-ngrok_url = 'https://f7261ff4.ngrok.io/b'
+ngrok_url = 'https://agv-webrtc.herokuapp.com/b'
 # Font color
 class bcolors:
     HEADER = '\033[95m'
@@ -182,7 +182,7 @@ class ros_node(QThread):
         # if AGV succeffuly went to the target
         if int(self.move_base_client.get_state()) == 3:
             # send 0 (success) back to nurse
-            self.parent.tcp_th.connect_socket.send('0')
+            self.parent.tcp_th.connect_socket.send('4')
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
             print(bcolors.FAIL + '[ERROR] AGV: No plan')
@@ -212,6 +212,7 @@ class ros_node(QThread):
 class TCP_server(QThread):
 
     reset_authority = pyqtSignal(bool)
+    set_th = pyqtSignal()
     def __init__(self, parent=None):
         
         QThread.__init__(self, parent=parent)
@@ -219,8 +220,9 @@ class TCP_server(QThread):
         self.parent = parent
 
         self.reset_authority.connect(lambda p:parent.set_authority(p))
+        self.set_th.connect(self.parent.set_webcam)
         hostname = '0.0.0.0' 
-        port = 6667
+        port = 6671
         addr = (hostname,port)
         self.srv = socket.socket()
         self.srv.settimeout(None)
@@ -249,7 +251,7 @@ class TCP_server(QThread):
                 if recevent == "":
                     break
             except Exception as e:
-                print(bcolors.FAIL + "[ERROR] TCP:" + str(e))
+                print(bcolors.FAIL + "[ERROR] TCP:" + str(e) + bcolors.ENDC)
                 # break
         if self.running == False:
             self.connect_socket.close()
@@ -269,14 +271,16 @@ class TCP_server(QThread):
             self.parent.ros_th.cancel()
         # I should draw distingush between the formats
         elif recvMSG == 'HOME':
-            print(bcolors.OKGREEN + 'AGV is heading to Home')
+            print(bcolors.OKGREEN + 'AGV is heading to Home' + bcolors.ENDC)
             self.parent.ros_th.x = -0.2
             self.parent.ros_th.y = -0.1
             self.parent.ros_th.heading = 0.00
             self.parent.ros_th.gogoagv = True
             self.parent.ros_th.only_moving = True
             os.system("pkill chrome")
+
         elif self.r.match(recvMSG) is not None:
+            self.set_th.emit()
             print(bcolors.OKGREEN + 'AGV is heading to %s' % (recvMSG))
             pos = recvMSG.split(' ')
             self.parent.ros_th.x = float(pos[1])
@@ -287,6 +291,7 @@ class TCP_server(QThread):
             # activate agv
             self.parent.ros_th.gogoagv = True
         elif recvMSG == 'OPEN':
+            time.sleep(5)
             self.parent.on_btn_openLink_click()
         else:
             print(bcolors.FAIL + '[ERROR] Unkowned message : %s' %(recvMSG))
@@ -300,9 +305,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.image = []
         self.set_authority(False)
         # Create thread for camera
-        self.th = web_camera(self)
-        self.th.start()
-        self.camera_running = True
+        # self.th = web_camera(self)
+        # self.th.start()
+        # Camera is still running,
+        # Need to be recollect by quit()
+        self.camera_running = False
         # Create thread for TCP server
         self.tcp_th = TCP_server(self)
         # Create thread for ROS node
@@ -333,7 +340,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # verify and authenticate
         # self.btn_verify.clicked.connect(self.on_btn_verify_click)
         # open link for video communication
-        self.btn_openLink.clicked.connect(self.on_btn_openLink_click)
+        # self.btn_openLink.clicked.connect(self.on_btn_openLink_click)
         # clear viewer image
         # self.btn_clear.clicked.connect(self.on_btn_clear_click)
         # capture viewer image
@@ -342,9 +349,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # go home button
         self.btn_home.clicked.connect(self.on_btn_home_click)
         # go to certain link
-        self.btn_point.clicked.connect(self.on_btn_point_click)
+        # self.btn_point.clicked.connect(self.on_btn_point_click)
         # cancel goal
         self.btn_cancel.clicked.connect(self.on_btn_cancel_click)
+        
 
     def on_btn_takePhoto_click(self):
         print(bcolors.OKGREEN + '[INFO] Take Photo button pressed')
@@ -355,11 +363,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if authorized:
             self.label_status.setText("Authorized")
             self.label_status.setStyleSheet("QLabel{color:rgb(0,255,0)}")
-            self.btn_openLink.setEnabled(True)
+            # self.btn_openLink.setEnabled(True)
         else:
             self.label_status.setText("Unauthorized")
             self.label_status.setStyleSheet("QLabel{color:rgb(255,0,0)}")
-            self.btn_openLink.setEnabled(False)
+            # self.btn_openLink.setEnabled(False)
 
     def verify(self, image):
         if len(image) == 0:
@@ -385,7 +393,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # self.comboBox.setCurrentIndex(qtext)
             # text = str(self.comboBox.currentText())
             if names[0] == 'Unknown':
-                print(bcolors.WARNING + '[WARN] Unknown person')
+                print(bcolors.WARNING + '[WARN] Unknown person' + bcolors.ENDC)
                 self.set_authority(False)
                 self.drawPicture(image.copy(),cache=False)
 
@@ -417,8 +425,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ros_th.recognizing = False
             # send success signal("0") back to nurse
             self.tcp_th.connect_socket.send('0')
+            self.th.stop()
             # after rotating, present the viewer with the nurese 
-            self.drawPicture(self.nurse_img)
         
         self.ros_th.done = True
 
@@ -448,14 +456,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_btn_home_click(self):
         self.tcp_th.action('HOME')
 
-    def on_btn_point_click(self):
-        MSG = 'POS ' + self.pos_x.text() + " " + self.pos_y.text() + " " + self.pos_h.text()
-        print(bcolors.OKGREEN + "Givein AGV a point : %s" %(MSG))
-        self.tcp_th.action(MSG)
+    # def on_btn_point_click(self):
+    #     MSG = 'POS ' + self.pos_x.text() + " " + self.pos_y.text() + " " + self.pos_h.text()
+    #     print(bcolors.OKGREEN + "Givein AGV a point : %s" %(MSG))
+    #     self.tcp_th.action(MSG)
 
     def on_btn_cancel_click(self):
         print(bcolors.OKGREEN + "AGV STOP")
         self.tcp_th.action('STOP')
+
+    def set_webcam(self):
+        self.th = web_camera(self)
+        self.th.start()
+        self.camera_running = True
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
