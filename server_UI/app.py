@@ -22,7 +22,7 @@ import speech_recognition as sr
 
 import webbrowser
 
-VIDEO = "https://f7261ff4.ngrok.io/a"
+VIDEO = "https://agv-webrtc.herokuapp.com/a"
 
 LOCATIONS = {
     "daniel":["Daniel_Lin", "0.00 -5.00 0.00"],
@@ -30,7 +30,7 @@ LOCATIONS = {
     "robin":["Robin_Lin", "0.00 -3.33 0.00"]
 }
 
-ADDR = ("192.168.31.64", 6667)
+ADDR = ("192.168.31.64", 6671)
 
 class Voice(QThread):
 
@@ -124,6 +124,7 @@ class Voice(QThread):
         1: timeout
         2: no plan
         3: stopped
+        4: success go home
         """
         if data == "0":
             self.parent.print_label("Success!")
@@ -136,6 +137,8 @@ class Voice(QThread):
             self.parent.print_label("No Plan!")
         elif data == "3":
             self.parent.print_label("Stop by master!")
+        elif data == "4":
+            self.parent.print_label("Success!")
         else:
             self.parent.print_label(str(data))
         
@@ -146,7 +149,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
-        self.setGeometry(300,300, self.frameGeometry().width(), self.frameGeometry().height())
+        screen =QDesktopWidget().screenGeometry()
+         
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.onBindingUI()
 
         self.clientsock = socket.socket()
@@ -156,6 +161,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.voice_th = Voice(parent=self)
         self.voice_th.start()
 
+        self.setGeometry(0, screen.height()-self.height(), screen.width(), self.height()) 
     def connect(self):
         try:
             self.clientsock.connect(ADDR)
@@ -180,6 +186,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_btn_home_Clicked(self):
         print("[DEBUG] HOME BTN Clicked")
         self.voice_th.home()
+        #import os
+        #os.system("pkill chrome")
         return
 
     def on_btn_send_pos_Clicked(self):
