@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1920</width>
+    <width>1850</width>
     <height>1080</height>
    </rect>
   </property>
@@ -17,9 +17,9 @@
    <widget class="QLabel" name="viewer">
     <property name="geometry">
      <rect>
-      <x>20</x>
+      <x>40</x>
       <y>30</y>
-      <width>1861</width>
+      <width>1771</width>
       <height>801</height>
      </rect>
     </property>
@@ -39,8 +39,8 @@
    <widget class="QPushButton" name="btn_quit">
     <property name="geometry">
      <rect>
-      <x>1780</x>
-      <y>880</y>
+      <x>1710</x>
+      <y>870</y>
       <width>101</width>
       <height>51</height>
      </rect>
@@ -476,8 +476,8 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>1100</x>
-      <y>870</y>
+      <x>1070</x>
+      <y>860</y>
       <width>171</width>
       <height>51</height>
      </rect>
@@ -497,8 +497,8 @@
    <widget class="QLabel" name="label_status">
     <property name="geometry">
      <rect>
-      <x>1270</x>
-      <y>870</y>
+      <x>1240</x>
+      <y>860</y>
       <width>311</width>
       <height>51</height>
      </rect>
@@ -513,48 +513,6 @@
     </property>
     <property name="text">
      <string>Unauthorized</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_home">
-    <property name="geometry">
-     <rect>
-      <x>860</x>
-      <y>880</y>
-      <width>101</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>20</pointsize>
-      <weight>50</weight>
-      <italic>true</italic>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Home</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_cancel">
-    <property name="geometry">
-     <rect>
-      <x>740</x>
-      <y>880</y>
-      <width>101</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>20</pointsize>
-      <weight>50</weight>
-      <italic>true</italic>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Cancel</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_name">

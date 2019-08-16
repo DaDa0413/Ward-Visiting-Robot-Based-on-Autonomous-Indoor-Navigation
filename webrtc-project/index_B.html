@@ -15,7 +15,9 @@
 
     <video id="remoteVideo" autoplay muted style="width:240px;height:240px;"></video>
 
-
+    <button id="connectButton">
+        connectButton
+    </button>
     <!-- Include jquery -->
     <!-- Include peerjs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -23,7 +25,7 @@
 
     <!-- set connection -->
     <script>
-        var peer = new Peer('B', { host: 'a32c78fc.ngrok.io',port:'', path: '/api'});
+        var peer = new Peer('B', { host: '127.0.0.1',port:9000, path: '/api'});
         var con;
         var localVideo;
         var localStream;
@@ -81,9 +83,9 @@
             });
              
         }
-        // connectButton = document.getElementById('connectButton');
-        // connectButton.addEventListener('click', connect_peer, false);
-        connect_peer();
+        connectButton = document.getElementById('connectButton');
+        connectButton.addEventListener('click', connect_peer, false);
+        // connect_peer();
     </script>
     
 </body>

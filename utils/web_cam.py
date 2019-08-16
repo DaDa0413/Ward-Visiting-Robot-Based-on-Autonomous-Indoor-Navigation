@@ -5,8 +5,7 @@ from PyQt4.QtGui import *
 import time
 class web_camera(QThread):
 
-    refresh = pyqtSignal(np.ndarray)
-
+    refresh_sn = pyqtSignal(np.ndarray)
     def __init__(self, parent=None):
         QThread.__init__(self, parent=parent)
         self.cap = cv2.VideoCapture(0)
@@ -21,7 +20,7 @@ class web_camera(QThread):
         while self.running:
             ret, frame = self.cap.read()
             self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.refresh.emit(self.image)
+            self.refresh_sn.emit(self.image)
     
     def stop(self):
         self.running = False
