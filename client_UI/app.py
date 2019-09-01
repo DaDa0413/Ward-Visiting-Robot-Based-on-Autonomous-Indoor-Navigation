@@ -34,7 +34,7 @@ import re
 # It will create a P2P connection to 'A'
 ngrok_url = 'https://agv-webrtc.herokuapp.com/b'
 # TCP/IP socket address and port
-addr = ('0.0.0.0', 6666)
+addr = ('0.0.0.0', 6671)
 
 # Font color displayed in terminal
 class bcolors:
@@ -153,6 +153,7 @@ class ros_node(QThread):
             print(bcolors.FAIL + '[ERROR] AGV: No plan')
             # send 2 (timeout) back to nurse
             self.parent.tcp_th.connect_socket.send('2')
+            self.parent.cancel_webcam()
         else:
             pass
             
@@ -280,7 +281,9 @@ class TCP_server(QThread):
     def action(self, recvMSG):
         if recvMSG == 'STOP':
             print(bcolors.WARNING + 'AGV is canceling goal' + bcolors.ENDC)
+            self.parent.cancel_webcam()
             self.parent.ros_th.cancel()
+
         elif recvMSG == 'HOME':
             self.reset_authority_sn.emit(False)
             self.set_pic_sn.emit(self.parent.nurse_img)
@@ -336,6 +339,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.drawPicture(self.nurse_img)
 
         self.authorized_name = "<choose>"
+        self.webcam_flag = False
 
     def drawPicture(self, img, cache=True):
         if cache:
@@ -417,7 +421,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ros_th.enable_recognition = False
             # send success signal("0") back to nurse
             self.tcp_th.connect_socket.send('0')
-            self.webcam_th.stop()
+            self.cancel_webcam()
         # Tell ros_th "Verification is done, you can continue to next step"        
         self.ros_th.verification_done = True
         
@@ -443,9 +447,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     # Create a webcam thread
     # Make it to be running
     def set_webcam(self):
+        self.webcam_flag = True
         self.webcam_th = web_camera(self)
         self.webcam_th.start()
         self.camera_running = True
+
+    def cancel_webcam(self):
+        if self.webcam_flag == True:
+            self.webcam_th.stop()
+        self.webcam_flag = False
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
