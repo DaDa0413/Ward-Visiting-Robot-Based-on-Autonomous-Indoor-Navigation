@@ -6,23 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>ClientA</title>
-    <link rel="stylesheet" href="main.css">
+    <!-- <link rel="stylesheet" href="main.css"> -->
 </head>
 
-<body style="height: 80%;margin: 0px;padding: 0px;">
+<body>
 
-    <video id="localVideo"    autoplay muted>
-        <cover-view class="controls">
-            <video id="remoteVideo" autoplay muted></video>
-        </cover-view>
+    <video id="localVideo" autoplay muted style="height: 100% padding-bottom: 56.25%;">
     </video>
+    <video id="remoteVideo" autoplay muted></video>
 
 
     <!-- <video id="remoteVideo" autoplay muted></video> -->
     
-    <!-- <button>
+    <button id="connectButton">
         connect
-    </button> -->
+    </button>
     <!-- Include jquery -->
     <!-- Include peerjs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -36,8 +34,8 @@
         var localStream;
         var remoteVideo;
         // connect_peer();
-        //  connectButton = document.getElementById('connectButton');
-        // connectButton.addEventListener('click', connect_peer, false);
+        connectButton = document.getElementById('connectButton');
+        connectButton.addEventListener('click', connect_peer, false);
         //connection socket
 
         peer = new Peer('A', { host: '127.0.0.1', port:9000,  path: '/api'});

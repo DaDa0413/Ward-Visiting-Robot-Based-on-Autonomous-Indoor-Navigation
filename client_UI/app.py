@@ -34,7 +34,7 @@ import re
 # It will create a P2P connection to 'A'
 ngrok_url = 'https://agv-webrtc.herokuapp.com/b'
 # TCP/IP socket address and port
-addr = ('0.0.0.0', 6670)
+addr = ('0.0.0.0', 6666)
 
 # Font color displayed in terminal
 class bcolors:
@@ -291,6 +291,7 @@ class TCP_server(QThread):
             self.parent.ros_th.heading = 0.00
             self.parent.ros_th.enable_agv = True
             self.parent.ros_th.moving_home = True
+            self.parent.label_name.setText("Name")
             os.system("pkill chrome")
         elif self.r.match(recvMSG) is not None:
             self.reset_authority_sn.emit(False)
@@ -307,6 +308,7 @@ class TCP_server(QThread):
             # open video communication
         elif recvMSG == 'OPEN':
             time.sleep(5)
+            self.parent.label_name.setText("Name")
             self.parent.on_btn_openLink_click()
         else:
             print(bcolors.FAIL + '[ERROR] Unkowned message : %s' %(recvMSG) + bcolors.ENDC)
