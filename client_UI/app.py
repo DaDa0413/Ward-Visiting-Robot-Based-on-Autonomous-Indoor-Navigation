@@ -34,7 +34,7 @@ import re
 # It will create a P2P connection to 'A'
 ngrok_url = 'https://agv-webrtc.herokuapp.com/b'
 # TCP/IP socket address and port
-addr = ('0.0.0.0', 6671)
+addr = ('0.0.0.0', 6666)
 
 # Font color displayed in terminal
 class bcolors:
@@ -148,6 +148,8 @@ class ros_node(QThread):
                     self.enable_recognition = False
                     # send 1 (time out) back to nurse
                     self.parent.tcp_th.connect_socket.send('1')
+                    self.parent.cancel_webcam()
+
         # Failed to find a valid plan
         elif int(self.move_base_client.get_state()) == 4:
             print(bcolors.FAIL + '[ERROR] AGV: No plan')
@@ -283,10 +285,14 @@ class TCP_server(QThread):
             print(bcolors.WARNING + 'AGV is canceling goal' + bcolors.ENDC)
             self.parent.cancel_webcam()
             self.parent.ros_th.cancel()
+            # In case we forget to close WebRTC
+            os.system("pkill chrome")
 
         elif recvMSG == 'HOME':
+            # reset UI
             self.reset_authority_sn.emit(False)
             self.set_pic_sn.emit(self.parent.nurse_img)
+            self.parent.label_name.setText("Name")
             print(bcolors.OKGREEN + 'AGV is heading to Home' + bcolors.ENDC)
             # Home coordinate
             self.parent.ros_th.x = -0.2
@@ -294,11 +300,12 @@ class TCP_server(QThread):
             self.parent.ros_th.heading = 0.00
             self.parent.ros_th.enable_agv = True
             self.parent.ros_th.moving_home = True
-            self.parent.label_name.setText("Name")
             os.system("pkill chrome")
         elif self.r.match(recvMSG) is not None:
             self.reset_authority_sn.emit(False)
+            # Open camera thread for verification
             self.set_webcam_sn.emit()
+            # Handling message
             print(bcolors.OKGREEN + 'AGV is heading to %s' % (recvMSG))
             pos = recvMSG.split(' ')
             self.parent.ros_th.x = float(pos[1])
@@ -308,9 +315,10 @@ class TCP_server(QThread):
             self.parent.label_name.setText(pos[4])
             # activate agv
             self.parent.ros_th.enable_agv = True
-            # open video communication
         elif recvMSG == 'OPEN':
             time.sleep(5)
+            self.set_pic_sn.emit(self.parent.nurse_img)
+            self.reset_authority_sn.emit(False)
             self.parent.label_name.setText("Name")
             self.parent.on_btn_openLink_click()
         else:

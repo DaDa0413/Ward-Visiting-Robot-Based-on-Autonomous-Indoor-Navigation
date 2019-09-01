@@ -30,7 +30,7 @@ LOCATIONS = {
     "robin":["Robin_Lin", "0.00 -3.33 0.00"]
 }
 
-ADDR = ("192.168.31.64", 6671)
+ADDR = ("192.168.31.64", 6666)
 
 class Voice(QThread):
 
