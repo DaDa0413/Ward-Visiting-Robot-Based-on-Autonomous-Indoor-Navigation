@@ -1,0 +1,4 @@
+port: /dev/ttyAMA0
+imu_baudrate: 115200
+imu_freq: 100
+angle_offset: 0.99
